@@ -199,122 +199,123 @@ def main():
     print(f"N features: {n_feats}")
     print(f"N classes: {n_classes}")
 
-    hidden_sizes = [16, 32, 64, 128, 256]
-    learning_rates = [0.1, 0.01, 0.001, 0.0001]
-    dropouts = [0.0, 0.1]
-    l2_decays = [0.0, 0.0001]
+    hidden_sizes = [32]
+    learning_rates = [0.001]
+    dropouts = [0]
+    l2_decays = [0.0001]
+    layers = [1, 3, 5, 7, 9]
     
     # Store all results
     all_results = []
-    
-    for hidden_size in hidden_sizes:
-        for learning_rate in learning_rates:
-            for dropout in dropouts:
-                for l2_decay in l2_decays:
-                    print(f"\nTraining with - Hidden Size: {hidden_size}, Learning Rate: {learning_rate}, Dropout: {dropout}, L2 Decay: {l2_decay}")
-                    # initialize the model
-                    model = FeedforwardNetwork(
-                        n_classes,
-                        n_feats,
-                        hidden_size,
-                        opt.layers,
-                        opt.activation,
-                        dropout
-                    )
+    for opt.layers in layers:
+        for hidden_size in hidden_sizes:
+            for learning_rate in learning_rates:
+                for dropout in dropouts:
+                    for l2_decay in l2_decays:
+                        print(f"\nTraining with - Hidden Size: {hidden_size}, Learning Rate: {learning_rate}, Dropout: {dropout}, L2 Decay: {l2_decay}")
+                        # initialize the model
+                        model = FeedforwardNetwork(
+                            n_classes,
+                            n_feats,
+                            hidden_size,
+                            opt.layers,
+                            opt.activation,
+                            dropout
+                        )
 
-                    # get an optimizer
-                    optims = {"adam": torch.optim.Adam, "sgd": torch.optim.SGD}
+                        # get an optimizer
+                        optims = {"adam": torch.optim.Adam, "sgd": torch.optim.SGD}
 
-                    optim_cls = optims[opt.optimizer]
-                    optimizer = optim_cls(
-                        model.parameters(), lr=learning_rate, weight_decay=l2_decay
-                    )
+                        optim_cls = optims[opt.optimizer]
+                        optimizer = optim_cls(
+                            model.parameters(), lr=learning_rate, weight_decay=l2_decay
+                        )
 
-                    # get a loss criterion
-                    criterion = nn.CrossEntropyLoss()
+                        # get a loss criterion
+                        criterion = nn.CrossEntropyLoss()
 
-                    # training loop
-                    epochs = torch.arange(0, opt.epochs + 1)  # Start from 0 to include initial evaluation
-                    train_losses = []
-                    train_accs = []
-                    valid_losses = []
-                    valid_accs = []
+                        # training loop
+                        epochs = torch.arange(0, opt.epochs + 1)  # Start from 0 to include initial evaluation
+                        train_losses = []
+                        train_accs = []
+                        valid_losses = []
+                        valid_accs = []
 
-                    start = time.time()
-
-                    model.eval()
-                    initial_train_loss, initial_train_acc = evaluate(model, train_X, train_y, criterion)
-                    initial_val_loss, initial_val_acc = evaluate(model, dev_X, dev_y, criterion)
-                    train_losses.append(initial_train_loss)
-                    train_accs.append(initial_train_acc)
-                    valid_losses.append(initial_val_loss)
-                    valid_accs.append(initial_val_acc)
-                    print('initial val acc: {:.4f}'.format(initial_val_acc))
-
-                    for ii in range(1, opt.epochs + 1):  # Start from 1 since epoch 0 is initial evaluation
-                        print('Training epoch {}'.format(ii))
-                        epoch_train_losses = []
-                        model.train()
-                        for X_batch, y_batch in train_dataloader:
-                            loss = train_batch(
-                                X_batch, y_batch, model, optimizer, criterion)
-                            epoch_train_losses.append(loss)
+                        start = time.time()
 
                         model.eval()
-                        epoch_train_loss = torch.tensor(epoch_train_losses).mean().item()
-                        _, train_acc = evaluate(model, train_X, train_y, criterion)
-                        val_loss, val_acc = evaluate(model, dev_X, dev_y, criterion)
+                        initial_train_loss, initial_train_acc = evaluate(model, train_X, train_y, criterion)
+                        initial_val_loss, initial_val_acc = evaluate(model, dev_X, dev_y, criterion)
+                        train_losses.append(initial_train_loss)
+                        train_accs.append(initial_train_acc)
+                        valid_losses.append(initial_val_loss)
+                        valid_accs.append(initial_val_acc)
+                        print('initial val acc: {:.4f}'.format(initial_val_acc))
 
-                        print('train loss: {:.4f} | val loss: {:.4f} | val acc: {:.4f}'.format(
-                            epoch_train_loss, val_loss, val_acc
-                        ))
+                        for ii in range(1, opt.epochs + 1):  # Start from 1 since epoch 0 is initial evaluation
+                            print('Training epoch {}'.format(ii))
+                            epoch_train_losses = []
+                            model.train()
+                            for X_batch, y_batch in train_dataloader:
+                                loss = train_batch(
+                                    X_batch, y_batch, model, optimizer, criterion)
+                                epoch_train_losses.append(loss)
 
-                        train_losses.append(epoch_train_loss)
-                        train_accs.append(train_acc)
-                        valid_losses.append(val_loss)
-                        valid_accs.append(val_acc)
+                            model.eval()
+                            epoch_train_loss = torch.tensor(epoch_train_losses).mean().item()
+                            _, train_acc = evaluate(model, train_X, train_y, criterion)
+                            val_loss, val_acc = evaluate(model, dev_X, dev_y, criterion)
 
-                    elapsed_time = time.time() - start
-                    minutes = int(elapsed_time // 60)
-                    seconds = int(elapsed_time % 60)
-                    print('Training took {} minutes and {} seconds'.format(minutes, seconds))
+                            print('train loss: {:.4f} | val loss: {:.4f} | val acc: {:.4f}'.format(
+                                epoch_train_loss, val_loss, val_acc
+                            ))
 
-                    _, test_acc = evaluate(model, test_X, test_y, criterion)
-                    print('Final test acc: {:.4f}'.format(test_acc))
+                            train_losses.append(epoch_train_loss)
+                            train_accs.append(train_acc)
+                            valid_losses.append(val_loss)
+                            valid_accs.append(val_acc)
 
-                    # Create unique config string for this specific configuration
-                    config = (
-                        f"batch-{opt.batch_size}-lr-{learning_rate}-epochs-{opt.epochs}-"
-                        f"hidden-{hidden_size}-dropout-{dropout}-l2-{l2_decay}-"
-                        f"layers-{opt.layers}-act-{opt.activation}-opt-{opt.optimizer}"
-                    )
+                        elapsed_time = time.time() - start
+                        minutes = int(elapsed_time // 60)
+                        seconds = int(elapsed_time % 60)
+                        print('Training took {} minutes and {} seconds'.format(minutes, seconds))
 
-                    losses = {
-                        "Train Loss": train_losses,
-                        "Valid Loss": valid_losses,
-                    }
+                        _, test_acc = evaluate(model, test_X, test_y, criterion)
+                        print('Final test acc: {:.4f}'.format(test_acc))
 
-                    plot(epochs, losses, filename=f'ffn-training-loss-{config}.pdf')
-                    print(f"Final Training Accuracy: {train_accs[-1]:.4f}")
-                    print(f"Best Validation Accuracy: {max(valid_accs):.4f}")
-                    val_accuracy = { "Valid Accuracy": valid_accs }
-                    plot(epochs, val_accuracy, filename=f'ffn-validation-accuracy-{config}.pdf')
-                    
-                    # Store results for this configuration
-                    result = {
-                        'hidden_size': hidden_size,
-                        'learning_rate': learning_rate,
-                        'dropout': dropout,
-                        'l2_decay': l2_decay,
-                        'final_train_acc': train_accs[-1],
-                        'best_val_acc': max(valid_accs),
-                        'final_test_acc': test_acc,
-                        'val_accs': valid_accs.copy(),
-                        'train_accs': train_accs.copy(),
-                        'train_losses': train_losses.copy(),
-                        'valid_losses': valid_losses.copy()
-                    }
-                    all_results.append(result)
+                        # Create unique config string for this specific configuration
+                        config = (
+                            f"batch-{opt.batch_size}-lr-{learning_rate}-epochs-{opt.epochs}-"
+                            f"hidden-{hidden_size}-dropout-{dropout}-l2-{l2_decay}-"
+                            f"layers-{opt.layers}-act-{opt.activation}-opt-{opt.optimizer}"
+                        )
+
+                        losses = {
+                            "Train Loss": train_losses,
+                            "Valid Loss": valid_losses,
+                        }
+
+                        plot(epochs, losses, filename=f'ffn-training-loss-{config}.pdf')
+                        print(f"Final Training Accuracy: {train_accs[-1]:.4f}")
+                        print(f"Best Validation Accuracy: {max(valid_accs):.4f}")
+                        val_accuracy = { "Valid Accuracy": valid_accs }
+                        plot(epochs, val_accuracy, filename=f'ffn-validation-accuracy-{config}.pdf')
+                        
+                        # Store results for this configuration
+                        result = {
+                            'hidden_size': hidden_size,
+                            'learning_rate': learning_rate,
+                            'dropout': dropout,
+                            'l2_decay': l2_decay,
+                            'final_train_acc': train_accs[-1],
+                            'best_val_acc': max(valid_accs),
+                            'final_test_acc': test_acc,
+                            'val_accs': valid_accs.copy(),
+                            'train_accs': train_accs.copy(),
+                            'train_losses': train_losses.copy(),
+                            'valid_losses': valid_losses.copy()
+                        }
+                        all_results.append(result)
     
     # Save all results summary
     print("\n" + "="*80)
